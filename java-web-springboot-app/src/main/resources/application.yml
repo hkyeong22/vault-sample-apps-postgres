@@ -1,0 +1,61 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /vault-web
+
+vault:
+  database:
+    credential-source: kv  # kv, dynamic, static 중 선택
+    kv:
+      path: my-vault-app-kv/data/database
+      username-key: database_username
+      password-key: database_password
+    dynamic:
+      role: db-demo-dynamic
+    static:
+      role: db-demo-static
+
+spring:
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/mydb
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,vault
+  endpoint:
+    health:
+      show-details: always
+    vault:
+      enabled: true
+
+logging:
+  level:
+    com.example.vaultweb: DEBUG
+    org.springframework.cloud.vault: DEBUG
+    org.springframework.vault: DEBUG
+  file:
+    name: logs/vault-web-app.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
