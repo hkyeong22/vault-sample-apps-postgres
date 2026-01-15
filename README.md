@@ -1,5 +1,5 @@
 ### 개요
-https://github.com/Great-Stone/vault-client-app-development-guide 의 개발 가이드를 참고하여 PostgreSQL 으로 사용 가능하도록 수정한 가이드입니다.
+https://github.com/Great-Stone/vault-client-app-development-guide 의 개발 가이드를 참고하여 PostgreSQL 으로 사용 가능하도록 수정한 가이드입니다.   
 https://github.com/Great-Stone/vault-client-app-development-guide/blob/main/README_KO.md
 
 ### 디렉토리
