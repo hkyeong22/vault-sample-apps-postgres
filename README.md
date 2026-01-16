@@ -34,6 +34,8 @@ psql -U postgres -d mydb
 CREATE ROLE vaultadmin WITH LOGIN PASSWORD 'vaultadminpw';
 ALTER ROLE vaultadmin CREATEROLE;
 GRANT CONNECT ON DATABASE mydb TO vaultadmin;
+GRANT "my-vault-app-static" TO vaultadmin WITH ADMIN OPTION;
+
 
 
 CREATE ROLE schema_owner LOGIN PASSWORD 'schemaownerpw';
@@ -141,13 +143,6 @@ vault write my-vault-app-database/roles/db-demo-dynamic \
   default_ttl=1m \
   max_ttl=24h
 
-" 
-revocation_statements="
-REASSIGN OWNED BY "{{name}}" TO vaultadmin;
-DROP OWNED BY "{{name}}";
-" 
-default_ttl=1m 
-max_ttl=24h
 
 vault read my-vault-app-database/creds/db-demo-dynamic
 ```
