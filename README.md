@@ -25,20 +25,42 @@ Vault Database Secrets Engine은 데이터베이스 계정을 직접 생성, 삭
 •	ROLE 생성 및 삭제   
 •	비밀번호 변경 (ALTER ROLE)   
 •	권한 부여 및 회수 (GRANT / REVOKE)   
-•	Dynamic 계정 회수 시 OWNED OBJECT 정리   
+•	Dynamic 계정 회수 시 OWNED OBJECT 정리
+
 
 ```
 psql -U postgres -d mydb
 
 CREATE ROLE vaultadmin WITH LOGIN PASSWORD 'vaultadminpw';
-ALTER ROLE vaultadmin CREATEROLE CREATEDB;
+ALTER ROLE vaultadmin CREATEROLE;
+GRANT CONNECT ON DATABASE mydb TO vaultadmin;
+
+
+CREATE ROLE schema_owner LOGIN PASSWORD 'schemaownerpw';
+GRANT CONNECT ON DATABASE mydb TO schema_owner;
+CREATE SCHEMA app AUTHORIZATION schema_owner;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE schema_owner IN SCHEMA app
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO PUBLIC;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE schema_owner IN SCHEMA app
+GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO PUBLIC;
 
 ```
+
 2. Static Database 계정 생성
 ```
 psql -U postgres -d mydb
-CREATE ROLE "my-vault-app-static" WITH LOGIN PASSWORD 'initial-password';
+CREATE ROLE "my-vault-app-static" LOGIN PASSWORD 'initial-password';
+
+GRANT CONNECT ON DATABASE mydb TO "my-vault-app-static";
+GRANT USAGE ON SCHEMA app TO "my-vault-app-static";
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO "my-vault-app-static";
+
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA app TO "my-vault-app-static";
 ```
+
 3. Vault Policy 생성
 ```
 vault policy write myapp-templated-policy - <<'EOF'
@@ -107,14 +129,18 @@ password="vaultadminpw
 7. Dynamic Role 생성
 ```
 vault write my-vault-app-database/roles/db-demo-dynamic \
-db_name=postgres-demo \
-creation_statements="
-CREATE ROLE "{{name}}" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';
-GRANT CONNECT ON DATABASE mydb TO "{{name}}";
-GRANT USAGE ON SCHEMA public TO "{{name}}";
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "{{name}}";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "{{name}}";
+  db_name=postgres-demo \
+  creation_statements="
+    CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}';
+    GRANT CONNECT ON DATABASE mydb TO \"{{name}}\";
+    GRANT USAGE ON SCHEMA app TO \"{{name}}\";
+  " \
+  revocation_statements="
+    DROP ROLE IF EXISTS \"{{name}}\";
+  " \
+  default_ttl=1m \
+  max_ttl=24h
+
 " 
 revocation_statements="
 REASSIGN OWNED BY "{{name}}" TO vaultadmin;
